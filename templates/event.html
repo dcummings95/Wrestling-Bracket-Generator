@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.name }} - Brackets{% endblock %}
+
+{% block content %}
+<div class="event-page">
+    <header class="event-header">
+        <div class="event-info">
+            <h1>{{ event.name }}</h1>
+            <p class="event-date">{{ event.date }}</p>
+            <p class="event-stats">
+                {{ event.brackets|length }} brackets · 
+                {{ event.brackets|sum(attribute='size') }} wrestlers · 
+                {{ event.num_mats }} mats
+            </p>
+        </div>
+        <div class="event-actions">
+            <a href="{{ url_for('print_event', event_id=event.id) }}" class="btn btn-secondary" target="_blank">🖨️ Print Brackets</a>
+            <a href="{{ url_for('print_scoresheets', event_id=event.id) }}" class="btn btn-secondary" target="_blank">📋 Print Scoresheets</a>
+            <a href="{{ url_for('upload') }}" class="btn btn-primary">New Event</a>
+        </div>
+    </header>
+
+    <div class="mat-tabs">
+        <button class="mat-tab active" data-mat="all">All Mats</button>
+        {% for i in range(1, event.num_mats + 1) %}
+        <button class="mat-tab" data-mat="{{ i }}">Mat {{ i }}</button>
+        {% endfor %}
+    </div>
+
+    <div class="brackets-grid">
+        {% for bracket in event.brackets %}
+        <div class="bracket-card" data-mat="{{ bracket.mat_number }}">
+            <div class="bracket-header">
+                <span class="bracket-id">Bracket {{ bracket.id + 1 }}</span>
+                <span class="mat-badge">Mat {{ bracket.mat_number }}</span>
+            </div>
+            
+            {% if bracket.get_relaxation_warnings() %}
+            <div class="bracket-warnings">
+                {% for warning in bracket.get_relaxation_warnings() %}
+                <span class="warning-badge">⚠️ {{ warning }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="bracket-info">
+                <span>Weight: {{ bracket.weight_range[0] }} - {{ bracket.weight_range[1] }} lbs</span>
+                <span>Grades: {{ bracket.grade_range_display[0] }} - {{ bracket.grade_range_display[1] }}</span>
+            </div>
+
+            <table class="bracket-wrestlers">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Gr</th>
+                        <th>Wt</th>
+                        <th>Rk</th>
+                        <th>School</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in bracket.wrestlers %}
+                    <tr>
+                        <td>{{ w.full_name }}</td>
+                        <td>{{ w.grade_display }}</td>
+                        <td>{{ w.weight }}</td>
+                        <td>{{ w.rank }}</td>
+                        <td>{{ w.school }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="matchups">
+                <h4>Matchups</h4>
+                {% set wrestlers = bracket.wrestlers %}
+                {% for i in range(wrestlers|length) %}
+                    {% for j in range(i + 1, wrestlers|length) %}
+                    <div class="matchup">
+                        {{ wrestlers[i].last_name }} vs {{ wrestlers[j].last_name }}
+                    </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if event.unmatched_wrestlers %}
+    <section class="unmatched-section">
+        <h2>⚠️ Unmatched Wrestlers ({{ event.unmatched_wrestlers|length }})</h2>
+        <p>These wrestlers could not be placed in a bracket:</p>
+        <table class="wrestlers-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Grade</th>
+                    <th>Weight</th>
+                    <th>Rank</th>
+                    <th>School</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in event.unmatched_wrestlers %}
+                <tr>
+                    <td>{{ w.full_name }}</td>
+                    <td>{{ w.grade_display }}</td>
+                    <td>{{ w.weight }}</td>
+                    <td>{{ w.rank }}</td>
+                    <td>{{ w.school }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+</div>
+
+<script>
+document.querySelectorAll('.mat-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.mat-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        const mat = tab.dataset.mat;
+        document.querySelectorAll('.bracket-card').forEach(card => {
+            if (mat === 'all' || card.dataset.mat === mat) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

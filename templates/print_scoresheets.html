@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ event.name }} - Scoresheets</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        @page { 
+            size: letter portrait;
+            margin: 0.4in; 
+        }
+        
+        body { 
+            font-family: Arial, sans-serif; 
+            font-size: 11pt;
+        }
+        
+        .scoresheet {
+            page-break-after: always;
+            height: 100vh;
+            padding: 0.25in;
+        }
+        .scoresheet:last-child {
+            page-break-after: auto;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        .bracket-label {
+            font-size: 14pt;
+            font-weight: bold;
+        }
+        .bracket-number {
+            border-bottom: 1px solid #000;
+            min-width: 60px;
+            display: inline-block;
+            text-align: center;
+        }
+        .event-title {
+            font-size: 16pt;
+            font-weight: bold;
+            text-align: center;
+            flex: 1;
+        }
+        .mat-label {
+            font-size: 12pt;
+            font-weight: bold;
+        }
+        
+        .top-section {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .wrestlers-box {
+            flex: 1;
+        }
+        .wrestlers-box h3 {
+            font-size: 11pt;
+            margin-bottom: 5px;
+        }
+        .wrestlers-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .wrestlers-table td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            height: 24px;
+        }
+        .wrestler-name {
+            font-weight: 500;
+        }
+        .wrestler-school {
+            font-size: 9pt;
+            color: #555;
+        }
+        
+        .places-box {
+            width: 200px;
+        }
+        .places-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .places-table td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            height: 24px;
+        }
+        .place-label {
+            font-weight: bold;
+            width: 70px;
+        }
+        .place-label sup {
+            font-size: 8pt;
+        }
+        
+        .matches-section h3 {
+            font-size: 11pt;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .match-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+        .match-table th {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            font-size: 10pt;
+            font-weight: bold;
+            background: #f5f5f5;
+        }
+        .match-table td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            height: 28px;
+        }
+        .match-table .name-col { width: 30%; }
+        .match-table .period-col { width: 12%; text-align: center; }
+        .match-table .ot-col { width: 10%; text-align: center; }
+        .match-table .final-col { width: 12%; text-align: center; }
+        
+        .color-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .color-red { background: #dc2626; }
+        .color-green { background: #16a34a; }
+        
+        .match-row-red { background: #fef2f2; }
+        .match-row-green { background: #f0fdf4; }
+        
+        .match-divider {
+            height: 8px;
+            background: #e5e7eb;
+        }
+        
+        .no-print { margin-bottom: 20px; padding: 15px; background: #f5f5f5; }
+        
+        @media print {
+            .no-print { display: none; }
+            body { font-size: 10pt; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 14pt; cursor: pointer;">
+            🖨️ Print All Scoresheets
+        </button>
+        <a href="{{ url_for('view_event', event_id=event.id) }}" style="margin-left: 10px;">← Back to Event</a>
+        <span style="margin-left: 20px; color: #666;">{{ event.brackets|length }} scoresheets ready to print</span>
+    </div>
+
+    {% for bracket in event.brackets %}
+    <div class="scoresheet">
+        <div class="header">
+            <div class="bracket-label">
+                Bracket: <span class="bracket-number">{{ bracket.id + 1 }}</span>
+            </div>
+            <div class="event-title">{{ event.name }}</div>
+            <div class="mat-label">Mat {{ bracket.mat_number }}</div>
+        </div>
+
+        <div class="top-section">
+            <div class="wrestlers-box">
+                <h3>Wrestlers - Round Robin</h3>
+                <table class="wrestlers-table">
+                    {% for w in bracket.wrestlers %}
+                    <tr>
+                        <td>
+                            <span class="wrestler-name">{{ w.full_name }}</span>
+                            <span class="wrestler-school">({{ w.school }})</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% for _ in range(4 - bracket.wrestlers|length) %}
+                    <tr><td>&nbsp;</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+            <div class="places-box">
+                <table class="places-table">
+                    <tr>
+                        <td class="place-label">1<sup>st</sup> Place:</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td class="place-label">2<sup>nd</sup> Place:</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td class="place-label">3<sup>rd</sup> Place:</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td class="place-label">4<sup>th</sup> Place:</td>
+                        <td></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="matches-section">
+            {% set wrestlers = bracket.wrestlers %}
+            {% set match_num = namespace(value=1) %}
+            {% for i in range(wrestlers|length) %}
+                {% for j in range(i + 1, wrestlers|length) %}
+                <table class="match-table">
+                    <thead>
+                        <tr>
+                            <th class="name-col">Match {{ match_num.value }} - Name</th>
+                            <th class="period-col">1<sup>st</sup> Period</th>
+                            <th class="period-col">2<sup>nd</sup> Period</th>
+                            <th class="period-col">3<sup>rd</sup> Period</th>
+                            <th class="ot-col">OT</th>
+                            <th class="final-col">Final</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="match-row-red">
+                            <td>
+                                <span class="color-indicator color-red"></span>
+                                {{ wrestlers[i].full_name }} (red)
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr class="match-row-green">
+                            <td>
+                                <span class="color-indicator color-green"></span>
+                                {{ wrestlers[j].full_name }} (green)
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+                {% set match_num.value = match_num.value + 1 %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</body>
+</html>

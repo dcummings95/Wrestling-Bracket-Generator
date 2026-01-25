@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Wrestling Brackets - Home{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Wrestling Bracket Generator</h1>
+    <p>Upload wrestler data, configure constraints, and generate fair round-robin brackets automatically.</p>
+    <a href="{{ url_for('upload') }}" class="btn btn-primary btn-large">Create New Event</a>
+</div>
+
+{% if events %}
+<section class="events-section">
+    <h2>Recent Events</h2>
+    <div class="events-grid">
+        {% for event in events %}
+        <div class="event-card">
+            <h3>{{ event.name }}</h3>
+            <p class="event-date">{{ event.date }}</p>
+            <p class="event-stats">
+                {{ event.brackets|length }} brackets · 
+                {{ event.brackets|sum(attribute='size') }} wrestlers
+            </p>
+            <a href="{{ url_for('view_event', event_id=event.id) }}" class="btn btn-secondary">View Brackets</a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ event.name }} - Print Brackets</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 11pt; padding: 0.5in; }
+        
+        .event-header { 
+            text-align: center; 
+            margin-bottom: 20px; 
+            padding-bottom: 10px;
+            border-bottom: 2px solid #000;
+        }
+        .event-header h1 { font-size: 18pt; margin-bottom: 5px; }
+        .event-header p { font-size: 10pt; color: #666; }
+        
+        .mat-section { page-break-before: always; }
+        .mat-section:first-of-type { page-break-before: auto; }
+        .mat-title { 
+            font-size: 14pt; 
+            font-weight: bold; 
+            margin: 20px 0 10px;
+            padding: 5px;
+            background: #f0f0f0;
+        }
+        
+        .brackets-container { display: flex; flex-wrap: wrap; gap: 15px; }
+        
+        .bracket {
+            border: 1px solid #000;
+            padding: 10px;
+            width: calc(50% - 10px);
+            break-inside: avoid;
+        }
+        .bracket-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+        .bracket-info { font-size: 9pt; color: #666; margin-bottom: 8px; }
+        .warning { font-size: 8pt; color: #c00; margin-bottom: 5px; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+        th, td { border: 1px solid #ccc; padding: 4px; text-align: left; }
+        th { background: #f5f5f5; }
+        
+        .matchups { margin-top: 10px; }
+        .matchups h4 { font-size: 9pt; margin-bottom: 5px; }
+        .match-row { 
+            display: flex; 
+            border: 1px solid #ccc; 
+            margin-bottom: 3px;
+            font-size: 9pt;
+        }
+        .match-wrestler { 
+            flex: 1; 
+            padding: 3px 5px;
+            border-right: 1px solid #ccc;
+        }
+        .match-wrestler:last-child { border-right: none; }
+        .match-score { width: 40px; text-align: center; border-left: 1px solid #ccc; }
+        
+        .unmatched { margin-top: 30px; page-break-before: always; }
+        .unmatched h2 { font-size: 12pt; margin-bottom: 10px; }
+        
+        @media print {
+            .no-print { display: none; }
+            body { padding: 0.25in; }
+            .bracket { width: calc(50% - 8px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 14pt; cursor: pointer;">
+            🖨️ Print Brackets
+        </button>
+        <a href="{{ url_for('view_event', event_id=event.id) }}" style="margin-left: 10px;">← Back to Event</a>
+    </div>
+
+    <div class="event-header">
+        <h1>{{ event.name }}</h1>
+        <p>{{ event.date }} · {{ event.brackets|length }} Brackets · {{ event.num_mats }} Mats</p>
+    </div>
+
+    {% for mat_num in range(1, event.num_mats + 1) %}
+    <div class="mat-section">
+        <div class="mat-title">Mat {{ mat_num }}</div>
+        <div class="brackets-container">
+            {% for bracket in event.brackets if bracket.mat_number == mat_num %}
+            <div class="bracket">
+                <div class="bracket-header">
+                    <span>Bracket {{ bracket.id + 1 }}</span>
+                    <span>{{ bracket.weight_range[0] }}-{{ bracket.weight_range[1] }} lbs</span>
+                </div>
+                
+                {% if bracket.get_relaxation_warnings() %}
+                <div class="warning">
+                    {% for w in bracket.get_relaxation_warnings() %}⚠️ {{ w }} {% endfor %}
+                </div>
+                {% endif %}
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Gr</th>
+                            <th>Wt</th>
+                            <th>Rk</th>
+                            <th>School</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for w in bracket.wrestlers %}
+                        <tr>
+                            <td>{{ w.full_name }}</td>
+                            <td>{{ w.grade_display }}</td>
+                            <td>{{ w.weight }}</td>
+                            <td>{{ w.rank }}</td>
+                            <td>{{ w.school }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="matchups">
+                    <h4>Matchups</h4>
+                    {% set wrestlers = bracket.wrestlers %}
+                    {% for i in range(wrestlers|length) %}
+                        {% for j in range(i + 1, wrestlers|length) %}
+                        <div class="match-row">
+                            <div class="match-wrestler">{{ wrestlers[i].full_name }}</div>
+                            <div class="match-score"></div>
+                            <div class="match-wrestler">{{ wrestlers[j].full_name }}</div>
+                            <div class="match-score"></div>
+                        </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if event.unmatched_wrestlers %}
+    <div class="unmatched">
+        <h2>Unmatched Wrestlers</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Grade</th>
+                    <th>Weight</th>
+                    <th>Rank</th>
+                    <th>School</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in event.unmatched_wrestlers %}
+                <tr>
+                    <td>{{ w.full_name }}</td>
+                    <td>{{ w.grade_display }}</td>
+                    <td>{{ w.weight }}</td>
+                    <td>{{ w.rank }}</td>
+                    <td>{{ w.school }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</body>
+</html>

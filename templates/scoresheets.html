@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.name }} - Scoresheets{% endblock %}
+
+{% block content %}
+<div class="event-page">
+    <header class="event-header">
+        <div class="event-info">
+            <h1>{{ event.name }} - Scoresheets</h1>
+            <p class="event-date">{{ event.date }}</p>
+        </div>
+        <div class="event-actions">
+            <a href="{{ url_for('print_scoresheets', event_id=event.id) }}" class="btn btn-primary" target="_blank">🖨️ Print All Scoresheets</a>
+            <a href="{{ url_for('view_event', event_id=event.id) }}" class="btn btn-secondary">← Back to Brackets</a>
+        </div>
+    </header>
+
+    <p style="margin-bottom: 1rem; color: var(--gray-600);">
+        Preview of scoresheets. Each bracket gets one page with all 6 matchups for a 4-person round robin.
+    </p>
+
+    <div class="scoresheet-preview-grid">
+        {% for bracket in event.brackets %}
+        <div class="scoresheet-preview-card">
+            <h3>Bracket {{ bracket.id + 1 }} (Mat {{ bracket.mat_number }})</h3>
+            <p>{{ bracket.wrestlers|length }} wrestlers · {{ (bracket.wrestlers|length * (bracket.wrestlers|length - 1)) // 2 }} matches</p>
+            <ul>
+                {% for w in bracket.wrestlers %}
+                <li>{{ w.full_name }} ({{ w.school }})</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
