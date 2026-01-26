@@ -57,6 +57,7 @@
                         <th>Wt</th>
                         <th>Rk</th>
                         <th>School</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -67,6 +68,9 @@
                         <td>{{ w.weight }}</td>
                         <td>{{ w.rank }}</td>
                         <td>{{ w.school }}</td>
+                        <td>
+                            <button class="btn-remove-wrestler" data-event-id="{{ event.id }}" data-bracket-id="{{ bracket.id }}" data-wrestler-id="{{ w.id }}" title="Remove from bracket">✕</button>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -90,7 +94,7 @@
     {% if event.unmatched_wrestlers %}
     <section class="unmatched-section">
         <h2>⚠️ Unmatched Wrestlers ({{ event.unmatched_wrestlers|length }})</h2>
-        <p>These wrestlers could not be placed in a bracket:</p>
+        <p>These wrestlers could not be placed in a bracket or were manually removed:</p>
         <table class="wrestlers-table">
             <thead>
                 <tr>
@@ -99,6 +103,7 @@
                     <th>Weight</th>
                     <th>Rank</th>
                     <th>School</th>
+                    <th>Add to Bracket</th>
                 </tr>
             </thead>
             <tbody>
@@ -109,6 +114,16 @@
                     <td>{{ w.weight }}</td>
                     <td>{{ w.rank }}</td>
                     <td>{{ w.school }}</td>
+                    <td>
+                        <select class="bracket-select" data-event-id="{{ event.id }}" data-wrestler-id="{{ w.id }}">
+                            <option value="">Select bracket...</option>
+                            {% for bracket in event.brackets %}
+                                {% if bracket.size < 4 %}
+                                <option value="{{ bracket.id }}">Bracket {{ bracket.id + 1 }} ({{ bracket.size }}/4)</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -118,6 +133,67 @@
 </div>
 
 <script>
+// Handle removing wrestlers from brackets
+document.querySelectorAll('.btn-remove-wrestler').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        if (!confirm('Remove this wrestler from the bracket?')) return;
+        
+        const eventId = btn.dataset.eventId;
+        const bracketId = btn.dataset.bracketId;
+        const wrestlerId = btn.dataset.wrestlerId;
+        
+        try {
+            const response = await fetch(`/api/event/${eventId}/remove-wrestler`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bracket_id: parseInt(bracketId), wrestler_id: parseInt(wrestlerId) })
+            });
+            
+            if (response.ok) {
+                alert('Wrestler removed and added to unmatched section');
+                location.reload();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.error);
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    });
+});
+
+// Handle adding wrestlers from unmatched to brackets
+document.querySelectorAll('.bracket-select').forEach(select => {
+    select.addEventListener('change', async (e) => {
+        if (!e.target.value) return;
+        
+        const eventId = e.target.dataset.eventId;
+        const wrestlerId = e.target.dataset.wrestlerId;
+        const bracketId = parseInt(e.target.value);
+        
+        try {
+            const response = await fetch(`/api/event/${eventId}/add-wrestler`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bracket_id: bracketId, wrestler_id: parseInt(wrestlerId) })
+            });
+            
+            if (response.ok) {
+                alert('Wrestler added to bracket');
+                location.reload();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.error);
+                e.target.value = '';
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+            e.target.value = '';
+        }
+    });
+});
+
+// Mat tab filtering
 document.querySelectorAll('.mat-tab').forEach(tab => {
     tab.addEventListener('click', () => {
         document.querySelectorAll('.mat-tab').forEach(t => t.classList.remove('active'));

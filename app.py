@@ -160,5 +160,73 @@ def api_event(event_id):
     return jsonify(event.to_dict())
 
 
+@app.route('/api/event/<event_id>/remove-wrestler', methods=['POST'])
+def remove_wrestler(event_id):
+    """Remove a wrestler from a bracket and move to unmatched."""
+    if event_id not in events_store:
+        return jsonify({'error': 'Event not found'}), 404
+    
+    data = request.get_json()
+    bracket_id = data.get('bracket_id')
+    wrestler_id = data.get('wrestler_id')
+    
+    event = events_store[event_id]
+    
+    # Find the bracket and wrestler
+    bracket = next((b for b in event.brackets if b.id == bracket_id), None)
+    if not bracket:
+        return jsonify({'error': 'Bracket not found'}), 404
+    
+    wrestler = next((w for w in bracket.wrestlers if w.id == wrestler_id), None)
+    if not wrestler:
+        return jsonify({'error': 'Wrestler not found'}), 404
+    
+    # Remove from bracket and add to unmatched
+    bracket.wrestlers.remove(wrestler)
+    event.unmatched_wrestlers.append(wrestler)
+    
+    return jsonify({
+        'success': True,
+        'bracket': bracket.to_dict(),
+        'unmatched_wrestlers': [w.to_dict() for w in event.unmatched_wrestlers]
+    })
+
+
+@app.route('/api/event/<event_id>/add-wrestler', methods=['POST'])
+def add_wrestler(event_id):
+    """Add an unmatched wrestler to a bracket."""
+    if event_id not in events_store:
+        return jsonify({'error': 'Event not found'}), 404
+    
+    data = request.get_json()
+    bracket_id = data.get('bracket_id')
+    wrestler_id = data.get('wrestler_id')
+    
+    event = events_store[event_id]
+    
+    # Find the bracket and wrestler
+    bracket = next((b for b in event.brackets if b.id == bracket_id), None)
+    if not bracket:
+        return jsonify({'error': 'Bracket not found'}), 404
+    
+    wrestler = next((w for w in event.unmatched_wrestlers if w.id == wrestler_id), None)
+    if not wrestler:
+        return jsonify({'error': 'Wrestler not found'}), 404
+    
+    # Check if bracket is full
+    if len(bracket.wrestlers) >= 4:
+        return jsonify({'error': 'Bracket is full (max 4 wrestlers)'}), 400
+    
+    # Add to bracket and remove from unmatched
+    bracket.wrestlers.append(wrestler)
+    event.unmatched_wrestlers.remove(wrestler)
+    
+    return jsonify({
+        'success': True,
+        'bracket': bracket.to_dict(),
+        'unmatched_wrestlers': [w.to_dict() for w in event.unmatched_wrestlers]
+    })
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
