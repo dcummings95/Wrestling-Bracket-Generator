@@ -99,12 +99,6 @@
                     <span>{{ bracket.weight_range[0] }}-{{ bracket.weight_range[1] }} lbs</span>
                 </div>
                 
-                {% if bracket.get_relaxation_warnings() %}
-                <div class="warning">
-                    {% for w in bracket.get_relaxation_warnings() %}⚠️ {{ w }} {% endfor %}
-                </div>
-                {% endif %}
-
                 <table>
                     <thead>
                         <tr>

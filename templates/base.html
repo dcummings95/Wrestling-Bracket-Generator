@@ -11,8 +11,11 @@
     <nav class="navbar">
         <a href="{{ url_for('index') }}" class="logo">🤼 Wrestling Brackets</a>
         <div class="nav-links">
-            <a href="{{ url_for('index') }}">Events</a>
-            <a href="{{ url_for('upload') }}">New Event</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('index') }}">Events</a>
+                <a href="{{ url_for('upload') }}">New Event</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% endif %}
         </div>
     </nav>
 
