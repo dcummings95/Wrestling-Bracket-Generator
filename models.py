@@ -46,6 +46,19 @@ class Wrestler:
             "school": self.school,
             "full_name": self.full_name
         }
+    
+    @staticmethod
+    def from_dict(data: dict) -> 'Wrestler':
+        """Create Wrestler from dictionary."""
+        return Wrestler(
+            id=data['id'],
+            first_name=data['first_name'],
+            last_name=data['last_name'],
+            grade=data['grade'],
+            weight=data['weight'],
+            rank=data['rank'],
+            school=data['school']
+        )
 
 
 @dataclass
@@ -94,7 +107,7 @@ class Bracket:
             elif r == ConstraintRelaxation.WEIGHT:
                 warnings.append("Weight constraint relaxed (>10lbs)")
             elif r == ConstraintRelaxation.SCHOOL:
-                warnings.append("School constraint relaxed (2 from same school)")
+                warnings.append("School constraint relaxed (3 from same school)")
         return warnings
     
     def to_dict(self) -> dict:
@@ -105,8 +118,20 @@ class Bracket:
             "size": self.size,
             "weight_range": self.weight_range,
             "grade_range": self.grade_range,
-            "warnings": self.get_relaxation_warnings()
+            "warnings": self.get_relaxation_warnings(),
+            "relaxations": [r.value for r in self.relaxations]
         }
+    
+    @staticmethod
+    def from_dict(data: dict) -> 'Bracket':
+        """Create Bracket from dictionary."""
+        relaxations = [ConstraintRelaxation(r) for r in data.get('relaxations', [])]
+        return Bracket(
+            id=data['id'],
+            wrestlers=[Wrestler.from_dict(w) for w in data['wrestlers']],
+            mat_number=data.get('mat_number'),
+            relaxations=relaxations
+        )
 
 
 @dataclass
@@ -129,3 +154,15 @@ class Event:
             "total_wrestlers": sum(b.size for b in self.brackets) + len(self.unmatched_wrestlers),
             "total_brackets": len(self.brackets)
         }
+    
+    @staticmethod
+    def from_dict(data: dict) -> 'Event':
+        """Create Event from dictionary."""
+        return Event(
+            id=data['id'],
+            name=data['name'],
+            date=data['date'],
+            num_mats=data['num_mats'],
+            brackets=[Bracket.from_dict(b) for b in data['brackets']],
+            unmatched_wrestlers=[Wrestler.from_dict(w) for w in data.get('unmatched_wrestlers', [])]
+        )

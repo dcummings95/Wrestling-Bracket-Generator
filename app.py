@@ -6,7 +6,10 @@ from werkzeug.utils import secure_filename
 from parser import parse_excel, parse_csv
 from matcher import BracketMatcher
 from models import Event
-from database import init_db, create_user, get_user_by_username, get_user_by_id, verify_password
+from database import (
+    init_db, create_user, get_user_by_username, get_user_by_id, verify_password,
+    save_event, get_event, get_user_events, delete_event
+)
 import secrets
 from dotenv import load_dotenv
 
@@ -29,7 +32,7 @@ login_manager.login_view = 'login'
 # Initialize database
 init_db()
 
-events_store = {}
+# Only keep wrestlers in memory temporarily during upload
 wrestlers_store = {}
 
 
@@ -87,7 +90,10 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html', events=events_store.values())
+    """Load events from database for current user."""
+    events_data = get_user_events(current_user.id)
+    events = [Event.from_dict(e['data']) for e in events_data]
+    return render_template('index.html', events=events)
 
 
 @app.route('/upload', methods=['GET', 'POST'])
@@ -163,11 +169,15 @@ def create_event(session_id):
             brackets=brackets,
             unmatched_wrestlers=unmatched
         )
-        events_store[event_id] = event
         
-        del wrestlers_store[session_id]
-        
-        return redirect(url_for('view_event', event_id=event_id))
+        # Save to database
+        if save_event(event_id, current_user.id, event_name, event_date, num_mats, event.to_dict()):
+            del wrestlers_store[session_id]
+            flash('Event created successfully', 'success')
+            return redirect(url_for('view_event', event_id=event_id))
+        else:
+            flash('Error saving event', 'error')
+            return redirect(url_for('upload'))
     
     return render_template('create_event.html', 
                          session_id=session_id, 
@@ -178,69 +188,93 @@ def create_event(session_id):
 @app.route('/event/<event_id>')
 @login_required
 def view_event(event_id):
-    if event_id not in events_store:
+    """Load event from database."""
+    event_data = get_event(event_id, current_user.id)
+    
+    if not event_data:
         flash('Event not found', 'error')
         return redirect(url_for('index'))
     
-    event = events_store[event_id]
+    event = Event.from_dict(event_data['data'])
     return render_template('event.html', event=event)
+
+
+@app.route('/event/<event_id>/delete', methods=['POST'])
+@login_required
+def delete_event_route(event_id):
+    """Delete an event."""
+    if delete_event(event_id, current_user.id):
+        flash('Event deleted successfully', 'success')
+    else:
+        flash('Event not found', 'error')
+    
+    return redirect(url_for('index'))
 
 
 @app.route('/event/<event_id>/print')
 @login_required
 def print_event(event_id):
-    if event_id not in events_store:
+    event_data = get_event(event_id, current_user.id)
+    
+    if not event_data:
         flash('Event not found', 'error')
         return redirect(url_for('index'))
     
-    event = events_store[event_id]
+    event = Event.from_dict(event_data['data'])
     return render_template('print_brackets.html', event=event)
 
 
 @app.route('/event/<event_id>/scoresheets')
 @login_required
 def scoresheets(event_id):
-    if event_id not in events_store:
+    event_data = get_event(event_id, current_user.id)
+    
+    if not event_data:
         flash('Event not found', 'error')
         return redirect(url_for('index'))
     
-    event = events_store[event_id]
+    event = Event.from_dict(event_data['data'])
     return render_template('scoresheets.html', event=event)
 
 
 @app.route('/event/<event_id>/print-scoresheets')
 @login_required
 def print_scoresheets(event_id):
-    if event_id not in events_store:
+    event_data = get_event(event_id, current_user.id)
+    
+    if not event_data:
         flash('Event not found', 'error')
         return redirect(url_for('index'))
     
-    event = events_store[event_id]
+    event = Event.from_dict(event_data['data'])
     return render_template('print_scoresheets.html', event=event)
 
 
 @app.route('/api/event/<event_id>')
 @login_required
 def api_event(event_id):
-    if event_id not in events_store:
+    event_data = get_event(event_id, current_user.id)
+    
+    if not event_data:
         return jsonify({'error': 'Event not found'}), 404
     
-    event = events_store[event_id]
-    return jsonify(event.to_dict())
+    return jsonify(event_data['data'])
 
 
 @app.route('/api/event/<event_id>/remove-wrestler', methods=['POST'])
 @login_required
 def remove_wrestler(event_id):
     """Remove a wrestler from a bracket and move to unmatched."""
-    if event_id not in events_store:
+    event_data = get_event(event_id, current_user.id)
+    
+    if not event_data:
         return jsonify({'error': 'Event not found'}), 404
+    
+    event = Event.from_dict(event_data['data'])
     
     data = request.get_json()
     bracket_id = data.get('bracket_id')
     wrestler_id = data.get('wrestler_id')
-    
-    event = events_store[event_id]
     
     bracket = next((b for b in event.brackets if b.id == bracket_id), None)
     if not bracket:
@@ -253,6 +287,9 @@ def remove_wrestler(event_id):
     bracket.wrestlers.remove(wrestler)
     event.unmatched_wrestlers.append(wrestler)
     
+    # Save updated event back to database
+    save_event(event_id, current_user.id, event.name, event.date, event.num_mats, event.to_dict())
+    
     return jsonify({
         'success': True,
         'bracket': bracket.to_dict(),
@@ -264,14 +301,16 @@ def remove_wrestler(event_id):
 @login_required
 def add_wrestler(event_id):
     """Add an unmatched wrestler to a bracket."""
-    if event_id not in events_store:
+    event_data = get_event(event_id, current_user.id)
+    
+    if not event_data:
         return jsonify({'error': 'Event not found'}), 404
+    
+    event = Event.from_dict(event_data['data'])
     
     data = request.get_json()
     bracket_id = data.get('bracket_id')
     wrestler_id = data.get('wrestler_id')
-    
-    event = events_store[event_id]
     
     bracket = next((b for b in event.brackets if b.id == bracket_id), None)
     if not bracket:
@@ -286,6 +325,9 @@ def add_wrestler(event_id):
     
     bracket.wrestlers.append(wrestler)
     event.unmatched_wrestlers.remove(wrestler)
+    
+    # Save updated event back to database
+    save_event(event_id, current_user.id, event.name, event.date, event.num_mats, event.to_dict())
     
     return jsonify({
         'success': True,
