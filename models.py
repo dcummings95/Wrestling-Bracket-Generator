@@ -94,7 +94,7 @@ class Bracket:
             elif r == ConstraintRelaxation.WEIGHT:
                 warnings.append("Weight constraint relaxed (>10lbs)")
             elif r == ConstraintRelaxation.SCHOOL:
-                warnings.append("School constraint relaxed (3 from same school)")
+                warnings.append("School constraint relaxed (2 from same school)")
         return warnings
     
     def to_dict(self) -> dict:

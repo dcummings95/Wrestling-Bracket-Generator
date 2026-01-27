@@ -1,0 +1,32 @@
+# Environment variables
+.env
+
+# Database
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Uploads
+uploads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+```

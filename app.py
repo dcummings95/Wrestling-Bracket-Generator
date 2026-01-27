@@ -1,33 +1,97 @@
 import os
 import json
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from parser import parse_excel, parse_csv
 from matcher import BracketMatcher
 from models import Event
+from database import init_db, create_user, get_user_by_username, get_user_by_id, verify_password
+import secrets
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls', 'csv'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(16))
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# Initialize database
+init_db()
+
 events_store = {}
 wrestlers_store = {}
+
+
+class User(UserMixin):
+    def __init__(self, id, username):
+        self.id = id
+        self.username = username
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Flask-Login uses this to reload user from session."""
+    db_user = get_user_by_id(int(user_id))
+    if db_user:
+        return User(db_user.id, db_user.username)
+    return None
 
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        db_user = get_user_by_username(username)
+        
+        if db_user and verify_password(db_user, password):
+            user = User(db_user.id, db_user.username)
+            login_user(user)
+            flash('Logged in successfully', 'success')
+            
+            next_page = request.args.get('next')
+            return redirect(next_page if next_page else url_for('index'))
+        else:
+            flash('Invalid username or password', 'error')
+    
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Logged out successfully', 'success')
+    return redirect(url_for('login'))
+
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html', events=events_store.values())
 
 
 @app.route('/upload', methods=['GET', 'POST'])
+@login_required
 def upload():
     if request.method == 'POST':
         if 'file' not in request.files:
@@ -73,6 +137,7 @@ def upload():
 
 
 @app.route('/create-event/<session_id>', methods=['GET', 'POST'])
+@login_required
 def create_event(session_id):
     if session_id not in wrestlers_store:
         flash('Session expired. Please upload file again.', 'error')
@@ -111,6 +176,7 @@ def create_event(session_id):
 
 
 @app.route('/event/<event_id>')
+@login_required
 def view_event(event_id):
     if event_id not in events_store:
         flash('Event not found', 'error')
@@ -121,6 +187,7 @@ def view_event(event_id):
 
 
 @app.route('/event/<event_id>/print')
+@login_required
 def print_event(event_id):
     if event_id not in events_store:
         flash('Event not found', 'error')
@@ -131,6 +198,7 @@ def print_event(event_id):
 
 
 @app.route('/event/<event_id>/scoresheets')
+@login_required
 def scoresheets(event_id):
     if event_id not in events_store:
         flash('Event not found', 'error')
@@ -141,6 +209,7 @@ def scoresheets(event_id):
 
 
 @app.route('/event/<event_id>/print-scoresheets')
+@login_required
 def print_scoresheets(event_id):
     if event_id not in events_store:
         flash('Event not found', 'error')
@@ -151,6 +220,7 @@ def print_scoresheets(event_id):
 
 
 @app.route('/api/event/<event_id>')
+@login_required
 def api_event(event_id):
     if event_id not in events_store:
         return jsonify({'error': 'Event not found'}), 404
@@ -160,6 +230,7 @@ def api_event(event_id):
 
 
 @app.route('/api/event/<event_id>/remove-wrestler', methods=['POST'])
+@login_required
 def remove_wrestler(event_id):
     """Remove a wrestler from a bracket and move to unmatched."""
     if event_id not in events_store:
@@ -171,7 +242,6 @@ def remove_wrestler(event_id):
     
     event = events_store[event_id]
     
-    # Find the bracket and wrestler
     bracket = next((b for b in event.brackets if b.id == bracket_id), None)
     if not bracket:
         return jsonify({'error': 'Bracket not found'}), 404
@@ -180,7 +250,6 @@ def remove_wrestler(event_id):
     if not wrestler:
         return jsonify({'error': 'Wrestler not found'}), 404
     
-    # Remove from bracket and add to unmatched
     bracket.wrestlers.remove(wrestler)
     event.unmatched_wrestlers.append(wrestler)
     
@@ -192,6 +261,7 @@ def remove_wrestler(event_id):
 
 
 @app.route('/api/event/<event_id>/add-wrestler', methods=['POST'])
+@login_required
 def add_wrestler(event_id):
     """Add an unmatched wrestler to a bracket."""
     if event_id not in events_store:
@@ -203,7 +273,6 @@ def add_wrestler(event_id):
     
     event = events_store[event_id]
     
-    # Find the bracket and wrestler
     bracket = next((b for b in event.brackets if b.id == bracket_id), None)
     if not bracket:
         return jsonify({'error': 'Bracket not found'}), 404
@@ -212,11 +281,9 @@ def add_wrestler(event_id):
     if not wrestler:
         return jsonify({'error': 'Wrestler not found'}), 404
     
-    # Check if bracket is full
     if len(bracket.wrestlers) >= 4:
         return jsonify({'error': 'Bracket is full (max 4 wrestlers)'}), 400
     
-    # Add to bracket and remove from unmatched
     bracket.wrestlers.append(wrestler)
     event.unmatched_wrestlers.remove(wrestler)
     
