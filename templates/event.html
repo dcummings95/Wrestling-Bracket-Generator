@@ -17,6 +17,7 @@
         <div class="event-actions">
             <a href="{{ url_for('print_event', event_id=event.id) }}" class="btn btn-secondary" target="_blank">🖨️ Print Brackets</a>
             <a href="{{ url_for('print_scoresheets', event_id=event.id) }}" class="btn btn-secondary" target="_blank">📋 Print Scoresheets</a>
+            <button onclick="deleteEvent('{{ event.id }}')" class="btn btn-delete">🗑️ Delete Event</button>
             <a href="{{ url_for('upload') }}" class="btn btn-primary">New Event</a>
         </div>
     </header>
@@ -133,6 +134,19 @@
 </div>
 
 <script>
+// Delete event function
+function deleteEvent(eventId) {
+    if (!confirm('Are you sure you want to delete this event? This cannot be undone.')) {
+        return;
+    }
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/event/${eventId}/delete`;
+    document.body.appendChild(form);
+    form.submit();
+}
+
 // Handle removing wrestlers from brackets
 document.querySelectorAll('.btn-remove-wrestler').forEach(btn => {
     btn.addEventListener('click', async () => {
