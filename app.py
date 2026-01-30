@@ -4,14 +4,15 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from parser import parse_excel, parse_csv
-from matcher import BracketMatcher
+from bracket_matcher import BracketMatcher
 from models import Event
 from database import (
     init_db, create_user, get_user_by_username, get_user_by_id, verify_password,
-    save_event, get_event, get_user_events, delete_event
+    save_event, update_event, get_event, get_user_events, delete_event
 )
 import secrets
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -20,19 +21,20 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls', 'csv'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(16))
+
+app.secret_key = os.getenv('SECRET_KEY')
+if not app.secret_key:
+    raise ValueError("SECRET_KEY must be set in .env file. Run: python -c \"import secrets; print(secrets.token_hex(32))\" to generate one")
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Flask-Login setup
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+login_manager.login_message = None 
 
-# Initialize database
 init_db()
 
-# Only keep wrestlers in memory temporarily during upload
 wrestlers_store = {}
 
 
@@ -44,7 +46,6 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    """Flask-Login uses this to reload user from session."""
     db_user = get_user_by_id(int(user_id))
     if db_user:
         return User(db_user.id, db_user.username)
@@ -53,6 +54,27 @@ def load_user(user_id):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def cleanup_old_sessions():
+    """Remove session data older than 1 hour to prevent memory leaks."""
+    cutoff = datetime.now() - timedelta(hours=1)
+    to_delete = [sid for sid, data in wrestlers_store.items() 
+                 if data.get('timestamp', datetime.now()) < cutoff]
+    for sid in to_delete:
+        del wrestlers_store[sid]
+
+
+@app.errorhandler(404)
+def not_found(e):
+    flash('Page not found', 'error')
+    return redirect(url_for('index'))
+
+
+@app.errorhandler(500)
+def server_error(e):
+    flash('An unexpected error occurred. Please try again.', 'error')
+    return redirect(url_for('index'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -90,7 +112,6 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    """Load events from database for current user."""
     events_data = get_user_events(current_user.id)
     events = [Event.from_dict(e['data']) for e in events_data]
     return render_template('index.html', events=events)
@@ -120,8 +141,13 @@ def upload():
                 else:
                     wrestlers = parse_excel(filepath)
                 
+                cleanup_old_sessions()
+                
                 session_id = os.urandom(8).hex()
-                wrestlers_store[session_id] = wrestlers
+                wrestlers_store[session_id] = {
+                    'wrestlers': wrestlers,
+                    'timestamp': datetime.now()
+                }
                 
                 flash(f'Successfully loaded {len(wrestlers)} wrestlers', 'success')
                 return redirect(url_for('create_event', session_id=session_id))
@@ -149,7 +175,7 @@ def create_event(session_id):
         flash('Session expired. Please upload file again.', 'error')
         return redirect(url_for('upload'))
     
-    wrestlers = wrestlers_store[session_id]
+    wrestlers = wrestlers_store[session_id]['wrestlers']
     
     if request.method == 'POST':
         event_name = request.form.get('event_name', 'Unnamed Event')
@@ -170,7 +196,6 @@ def create_event(session_id):
             unmatched_wrestlers=unmatched
         )
         
-        # Save to database
         if save_event(event_id, current_user.id, event_name, event_date, num_mats, event.to_dict()):
             del wrestlers_store[session_id]
             flash('Event created successfully', 'success')
@@ -188,7 +213,6 @@ def create_event(session_id):
 @app.route('/event/<event_id>')
 @login_required
 def view_event(event_id):
-    """Load event from database."""
     event_data = get_event(event_id, current_user.id)
     
     if not event_data:
@@ -202,7 +226,6 @@ def view_event(event_id):
 @app.route('/event/<event_id>/delete', methods=['POST'])
 @login_required
 def delete_event_route(event_id):
-    """Delete an event."""
     if delete_event(event_id, current_user.id):
         flash('Event deleted successfully', 'success')
     else:
@@ -264,7 +287,6 @@ def api_event(event_id):
 @app.route('/api/event/<event_id>/remove-wrestler', methods=['POST'])
 @login_required
 def remove_wrestler(event_id):
-    """Remove a wrestler from a bracket and move to unmatched."""
     event_data = get_event(event_id, current_user.id)
     
     if not event_data:
@@ -287,20 +309,19 @@ def remove_wrestler(event_id):
     bracket.wrestlers.remove(wrestler)
     event.unmatched_wrestlers.append(wrestler)
     
-    # Save updated event back to database
-    save_event(event_id, current_user.id, event.name, event.date, event.num_mats, event.to_dict())
-    
-    return jsonify({
-        'success': True,
-        'bracket': bracket.to_dict(),
-        'unmatched_wrestlers': [w.to_dict() for w in event.unmatched_wrestlers]
-    })
+    if update_event(event_id, current_user.id, event.name, event.date, event.num_mats, event.to_dict()):
+        return jsonify({
+            'success': True,
+            'bracket': bracket.to_dict(),
+            'unmatched_wrestlers': [w.to_dict() for w in event.unmatched_wrestlers]
+        })
+    else:
+        return jsonify({'error': 'Failed to update event'}), 500
 
 
 @app.route('/api/event/<event_id>/add-wrestler', methods=['POST'])
 @login_required
 def add_wrestler(event_id):
-    """Add an unmatched wrestler to a bracket."""
     event_data = get_event(event_id, current_user.id)
     
     if not event_data:
@@ -326,15 +347,15 @@ def add_wrestler(event_id):
     bracket.wrestlers.append(wrestler)
     event.unmatched_wrestlers.remove(wrestler)
     
-    # Save updated event back to database
-    save_event(event_id, current_user.id, event.name, event.date, event.num_mats, event.to_dict())
-    
-    return jsonify({
-        'success': True,
-        'bracket': bracket.to_dict(),
-        'unmatched_wrestlers': [w.to_dict() for w in event.unmatched_wrestlers]
-    })
+    if update_event(event_id, current_user.id, event.name, event.date, event.num_mats, event.to_dict()):
+        return jsonify({
+            'success': True,
+            'bracket': bracket.to_dict(),
+            'unmatched_wrestlers': [w.to_dict() for w in event.unmatched_wrestlers]
+        })
+    else:
+        return jsonify({'error': 'Failed to update event'}), 500
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=False, host='0.0.0.0', port=5000)

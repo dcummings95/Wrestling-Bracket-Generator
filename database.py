@@ -88,7 +88,7 @@ def verify_password(user: User, password: str) -> bool:
     """Check if password matches user's hash."""
     return check_password_hash(user.password_hash, password)
 
-
+ 
 # Event storage functions
 
 def save_event(event_id: str, user_id: int, name: str, date: str, num_mats: int, event_data: dict) -> bool:
@@ -167,3 +167,19 @@ def delete_event(event_id: str, user_id: int) -> bool:
     conn.commit()
     conn.close()
     return deleted
+
+def update_event(event_id: str, user_id: int, name: str, date: str, num_mats: int, event_data: dict) -> bool:
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            'UPDATE events SET name = ?, date = ?, num_mats = ?, data = ? WHERE id = ? AND user_id = ?',
+            (name, date, num_mats, json.dumps(event_data), event_id, user_id)
+        )
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        return False

@@ -29,4 +29,7 @@ uploads/
 .idea/
 *.swp
 *.swo
-```
+
+# Other
+DEPLOYMENT.md
+deployment/
