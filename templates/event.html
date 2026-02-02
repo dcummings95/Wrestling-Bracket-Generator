@@ -40,7 +40,7 @@
             {% if bracket.get_relaxation_warnings() %}
             <div class="bracket-warnings">
                 {% for warning in bracket.get_relaxation_warnings() %}
-                <span class="warning-badge">⚠️ {{ warning }}</span>
+                <span class="warning-badge">{{ warning }}</span>
                 {% endfor %}
             </div>
             {% endif %}
@@ -94,7 +94,7 @@
 
     {% if event.unmatched_wrestlers %}
     <section class="unmatched-section">
-        <h2>⚠️ Unmatched Wrestlers ({{ event.unmatched_wrestlers|length }})</h2>
+        <h2>Unmatched Wrestlers ({{ event.unmatched_wrestlers|length }})</h2>
         <p>These wrestlers could not be placed in a bracket or were manually removed:</p>
         <table class="wrestlers-table">
             <thead>
