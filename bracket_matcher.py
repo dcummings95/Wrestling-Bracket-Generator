@@ -381,7 +381,6 @@ class BracketMatcherV3:
         while available:
             wrestler = available.pop(0)
             
-            # Find bracket where this wrestler fits best
             best_bracket = None
             best_score = float('inf')
             
@@ -392,16 +391,19 @@ class BracketMatcherV3:
                 test_group = b.wrestlers + [wrestler]
                 result = self._analyze(test_group)
                 
-                # Prefer brackets where adding doesn't violate grade
+                # HARD CONSTRAINT: Never exceed grade emergency limit
                 if result.grade_spread > self.MAX_GRADE_EMERGENCY:
                     continue
                 
-                # Score: school diversity is PRIMARY
+                # HARD CONSTRAINT: Never allow more than 2 from same school
+                if result.max_same_school > 2:
+                    continue
+                
                 score = (
-                    (result.max_same_school - 1) * 1000 +  # Penalize same-school heavily
+                    (result.max_same_school - 1) * 1000 +
                     result.grade_spread * 100 +
                     result.weight_spread * 1 +
-                    len(b.wrestlers) * 10  # Prefer smaller brackets
+                    len(b.wrestlers) * 10
                 )
                 
                 if score < best_score:
@@ -412,13 +414,9 @@ class BracketMatcherV3:
                 best_bracket.wrestlers.append(wrestler)
                 best_bracket.relaxations = self._analyze(best_bracket.wrestlers).violations
             else:
-                # Create a tiny bracket (shouldn't happen often)
-                brackets.append(Bracket(
-                    id=bracket_id,
-                    wrestlers=[wrestler],
-                    relaxations=[]
-                ))
-                bracket_id += 1
+                # Can't place this wrestler without violating constraints
+                # Add to unmatched instead of creating invalid bracket
+                self.unmatched.append(wrestler)
         
         self._assign_mats(brackets, num_mats)
         self.brackets = brackets
