@@ -5,7 +5,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from werkzeug.utils import secure_filename
 from parser import parse_excel, parse_csv
 from bracket_matcher import BracketMatcher
-from models import Event
+from models import Event, Bracket
 from database import (
     init_db, create_user, get_user_by_username, get_user_by_id, verify_password,
     save_event, update_event, get_event, get_user_events, delete_event
@@ -354,6 +354,26 @@ def add_wrestler(event_id):
             'bracket': bracket.to_dict(),
             'unmatched_wrestlers': [w.to_dict() for w in event.unmatched_wrestlers]
         })
+    else:
+        return jsonify({'error': 'Failed to update event'}), 500
+
+
+@app.route('/api/event/<event_id>/create-bracket', methods=['POST'])
+@login_required
+def create_bracket(event_id):
+    event_data = get_event(event_id, current_user.id)
+
+    if not event_data:
+        return jsonify({'error': 'Event not found'}), 404
+
+    event = Event.from_dict(event_data['data'])
+
+    next_id = max((b.id for b in event.brackets), default=-1) + 1
+    bracket = Bracket(id=next_id, wrestlers=[], mat_number=1)
+    event.brackets.append(bracket)
+
+    if update_event(event_id, current_user.id, event.name, event.date, event.num_mats, event.to_dict()):
+        return jsonify({'success': True, 'bracket': bracket.to_dict()})
     else:
         return jsonify({'error': 'Failed to update event'}), 500
 
