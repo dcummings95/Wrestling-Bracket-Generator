@@ -36,7 +36,7 @@
                 <span class="bracket-id">Bracket {{ bracket.letter_label }}</span>
                 <div class="bracket-header-right">
                     <span class="mat-badge">Mat {{ bracket.mat_number }}</span>
-                    <button class="btn-delete-bracket" onclick="deleteBracket('{{ event.id }}', {{ bracket.id }})" title="Delete bracket">🗑️</button>
+                    <button class="btn-delete-bracket" data-event-id="{{ event.id }}" data-bracket-id="{{ bracket.id }}" title="Delete bracket">🗑️</button>
                 </div>
             </div>
             
@@ -155,26 +155,31 @@ function deleteEvent(eventId) {
 }
 
 // Delete a bracket (moves its wrestlers to unmatched)
-async function deleteBracket(eventId, bracketId) {
-    if (!confirm('Delete this bracket? Its wrestlers will be moved to the unmatched section.')) return;
+document.querySelectorAll('.btn-delete-bracket').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        if (!confirm('Delete this bracket? Its wrestlers will be moved to the unmatched section.')) return;
 
-    try {
-        const response = await fetch(`/api/event/${eventId}/delete-bracket`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bracket_id: bracketId })
-        });
+        const eventId = btn.dataset.eventId;
+        const bracketId = parseInt(btn.dataset.bracketId);
 
-        if (response.ok) {
-            location.reload();
-        } else {
-            const error = await response.json();
-            alert('Error: ' + error.error);
+        try {
+            const response = await fetch(`/api/event/${eventId}/delete-bracket`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bracket_id: bracketId })
+            });
+
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + error.error);
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
         }
-    } catch (err) {
-        alert('Error: ' + err.message);
-    }
-}
+    });
+});
 
 // Create new empty bracket
 async function createBracket(eventId) {
