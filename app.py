@@ -180,7 +180,7 @@ def create_event(session_id):
     if request.method == 'POST':
         event_name = request.form.get('event_name', 'Unnamed Event')
         event_date = request.form.get('event_date', '')
-        num_mats = int(request.form.get('num_mats', 3))
+        num_mats = min(int(request.form.get('num_mats', 3)), 4)
         bracket_size = int(request.form.get('bracket_size', 4))
         
         matcher = BracketMatcher(wrestlers, bracket_size=bracket_size)
