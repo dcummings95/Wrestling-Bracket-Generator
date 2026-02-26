@@ -108,6 +108,35 @@ class Bracket:
         low, high = self.grade_range
         return (fmt(low), fmt(high))
     
+    @property
+    def staggered_matchups(self) -> list[tuple['Wrestler', 'Wrestler']]:
+        """All round-robin pairs ordered so wrestlers get rest between matches.
+        Uses the round-robin polygon algorithm: fix player[0], rotate the rest."""
+        n = len(self.wrestlers)
+        if n < 2:
+            return []
+
+        players = list(range(n))
+        if n % 2 == 1:
+            players.append(None)  # bye slot for odd counts
+
+        total = len(players)
+        fixed = players[0]
+        rotating = players[1:]
+        result = []
+
+        for _ in range(total - 1):
+            opp = rotating[0]
+            if fixed is not None and opp is not None:
+                result.append((self.wrestlers[fixed], self.wrestlers[opp]))
+            for k in range(1, total // 2):
+                a, b = rotating[k], rotating[-k]
+                if a is not None and b is not None:
+                    result.append((self.wrestlers[a], self.wrestlers[b]))
+            rotating = [rotating[-1]] + rotating[:-1]
+
+        return result
+
     def get_relaxation_warnings(self) -> list[str]:
         warnings = []
         for r in self.relaxations:

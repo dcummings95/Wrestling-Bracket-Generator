@@ -80,13 +80,10 @@
 
             <div class="matchups">
                 <h4>Matchups</h4>
-                {% set wrestlers = bracket.wrestlers %}
-                {% for i in range(wrestlers|length) %}
-                    {% for j in range(i + 1, wrestlers|length) %}
-                    <div class="matchup">
-                        {{ wrestlers[i].last_name }} vs {{ wrestlers[j].last_name }}
-                    </div>
-                    {% endfor %}
+                {% for w1, w2 in bracket.staggered_matchups %}
+                <div class="matchup">
+                    {{ w1.last_name }} vs {{ w2.last_name }}
+                </div>
                 {% endfor %}
             </div>
         </div>
