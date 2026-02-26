@@ -117,8 +117,8 @@
                         <select class="bracket-select" data-event-id="{{ event.id }}" data-wrestler-id="{{ w.id }}">
                             <option value="">Select bracket...</option>
                             {% for bracket in event.brackets %}
-                                {% if bracket.size < 4 %}
-                                <option value="{{ bracket.id }}">Bracket {{ bracket.letter_label }} ({{ bracket.size }}/4)</option>
+                                {% if bracket.size < event.bracket_size %}
+                                <option value="{{ bracket.id }}">Bracket {{ bracket.letter_label }} ({{ bracket.size }}/{{ event.bracket_size }})</option>
                                 {% endif %}
                             {% endfor %}
                         </select>

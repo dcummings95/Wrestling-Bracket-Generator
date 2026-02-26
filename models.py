@@ -178,6 +178,7 @@ class Event:
     name: str
     date: str
     num_mats: int
+    bracket_size: int = 4
     brackets: list[Bracket] = field(default_factory=list)
     unmatched_wrestlers: list[Wrestler] = field(default_factory=list)
     
@@ -187,6 +188,7 @@ class Event:
             "name": self.name,
             "date": self.date,
             "num_mats": self.num_mats,
+            "bracket_size": self.bracket_size,
             "brackets": [b.to_dict() for b in self.brackets],
             "unmatched_wrestlers": [w.to_dict() for w in self.unmatched_wrestlers],
             "total_wrestlers": sum(b.size for b in self.brackets) + len(self.unmatched_wrestlers),
@@ -201,6 +203,7 @@ class Event:
             name=data['name'],
             date=data['date'],
             num_mats=data['num_mats'],
+            bracket_size=data.get('bracket_size', 4),
             brackets=[Bracket.from_dict(b) for b in data['brackets']],
             unmatched_wrestlers=[Wrestler.from_dict(w) for w in data.get('unmatched_wrestlers', [])]
         )

@@ -192,6 +192,7 @@ def create_event(session_id):
             name=event_name,
             date=event_date,
             num_mats=num_mats,
+            bracket_size=bracket_size,
             brackets=brackets,
             unmatched_wrestlers=unmatched
         )

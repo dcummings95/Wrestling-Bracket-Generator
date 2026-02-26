@@ -188,7 +188,7 @@
                         </td>
                     </tr>
                     {% endfor %}
-                    {% for _ in range(4 - bracket.wrestlers|length) %}
+                    {% for _ in range(event.bracket_size - bracket.wrestlers|length) %}
                     <tr><td>&nbsp;</td></tr>
                     {% endfor %}
                 </table>
@@ -207,10 +207,12 @@
                         <td class="place-label">3<sup>rd</sup> Place:</td>
                         <td></td>
                     </tr>
+                    {% if event.bracket_size >= 4 %}
                     <tr>
                         <td class="place-label">4<sup>th</sup> Place:</td>
                         <td></td>
                     </tr>
+                    {% endif %}
                 </table>
             </div>
         </div>
