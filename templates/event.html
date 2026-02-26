@@ -42,6 +42,7 @@
                 {% for warning in bracket.get_relaxation_warnings() %}
                 <span class="warning-badge">{{ warning }}</span>
                 {% endfor %}
+                <button class="warnings-dismiss" onclick="this.closest('.bracket-warnings').style.display='none'" title="Dismiss">×</button>
             </div>
             {% endif %}
 

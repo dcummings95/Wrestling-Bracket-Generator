@@ -185,8 +185,10 @@ body {
     border-radius: 4px;
     font-size: 0.85rem;
 }
-.bracket-warnings { padding: 0.5rem 1rem; background: #fef3c7; }
+.bracket-warnings { padding: 0.5rem 1rem; background: #fef3c7; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .warning-badge { font-size: 0.8rem; color: #92400e; }
+.warnings-dismiss { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 1.1rem; color: #92400e; line-height: 1; padding: 0; opacity: 0.5; }
+.warnings-dismiss:hover { opacity: 1; }
 .bracket-info { padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--gray-600); display: flex; gap: 1rem; }
 
 .bracket-wrestlers { width: 100%; border-collapse: collapse; }
