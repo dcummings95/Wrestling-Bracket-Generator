@@ -69,6 +69,17 @@ class Bracket:
     relaxations: list[ConstraintRelaxation] = field(default_factory=list)
     
     @property
+    def letter_label(self) -> str:
+        n = self.id
+        result = ''
+        while True:
+            result = chr(ord('A') + n % 26) + result
+            n = n // 26 - 1
+            if n < 0:
+                break
+        return result
+
+    @property
     def size(self) -> int:
         return len(self.wrestlers)
     

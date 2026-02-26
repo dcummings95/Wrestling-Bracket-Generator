@@ -33,7 +33,7 @@
         {% for bracket in event.brackets %}
         <div class="bracket-card" data-mat="{{ bracket.mat_number }}">
             <div class="bracket-header">
-                <span class="bracket-id">Bracket {{ bracket.id + 1 }}</span>
+                <span class="bracket-id">Bracket {{ bracket.letter_label }}</span>
                 <span class="mat-badge">Mat {{ bracket.mat_number }}</span>
             </div>
             
@@ -120,7 +120,7 @@
                             <option value="">Select bracket...</option>
                             {% for bracket in event.brackets %}
                                 {% if bracket.size < 4 %}
-                                <option value="{{ bracket.id }}">Bracket {{ bracket.id + 1 }} ({{ bracket.size }}/4)</option>
+                                <option value="{{ bracket.id }}">Bracket {{ bracket.letter_label }} ({{ bracket.size }}/4)</option>
                                 {% endif %}
                             {% endfor %}
                         </select>

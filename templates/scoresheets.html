@@ -22,7 +22,7 @@
     <div class="scoresheet-preview-grid">
         {% for bracket in event.brackets %}
         <div class="scoresheet-preview-card">
-            <h3>Bracket {{ bracket.id + 1 }} (Mat {{ bracket.mat_number }})</h3>
+            <h3>Bracket {{ bracket.letter_label }} (Mat {{ bracket.mat_number }})</h3>
             <p>{{ bracket.wrestlers|length }} wrestlers · {{ (bracket.wrestlers|length * (bracket.wrestlers|length - 1)) // 2 }} matches</p>
             <ul>
                 {% for w in bracket.wrestlers %}
