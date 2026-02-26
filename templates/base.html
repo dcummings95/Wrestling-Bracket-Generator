@@ -10,7 +10,12 @@
 <body>
     <nav class="navbar">
         <a href="{{ url_for('index') }}" class="logo">Wrestling Brackets</a>
-        <div class="nav-links">
+        {% if current_user.is_authenticated %}
+        <button class="nav-hamburger" id="navHamburger" aria-label="Open menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        {% endif %}
+        <div class="nav-links" id="navLinks">
             {% if current_user.is_authenticated %}
                 <a href="{{ url_for('index') }}">Events</a>
                 <a href="{{ url_for('upload') }}">New Event</a>
@@ -32,5 +37,15 @@
     </main>
 
     {% block extra_js %}{% endblock %}
+    <script>
+    const hamburger = document.getElementById('navHamburger');
+    const navLinks = document.getElementById('navLinks');
+    if (hamburger) {
+        hamburger.addEventListener('click', () => {
+            const open = navLinks.classList.toggle('open');
+            hamburger.setAttribute('aria-expanded', open);
+        });
+    }
+    </script>
 </body>
 </html>

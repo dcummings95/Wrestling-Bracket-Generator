@@ -27,12 +27,37 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    position: relative;
 }
 .logo { color: white; font-size: 1.25rem; font-weight: bold; text-decoration: none; }
 .nav-links a { color: var(--gray-300); text-decoration: none; margin-left: 1.5rem; }
 .nav-links a:hover { color: white; }
 
+.nav-hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 28px;
+    height: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+.nav-hamburger span {
+    display: block;
+    height: 2px;
+    background: white;
+    border-radius: 2px;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
 .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+/* Touch-friendly minimum target sizes */
+.btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 
 .btn {
     display: inline-block;
@@ -47,6 +72,9 @@ body {
 .btn-primary { background: var(--primary); color: white; }
 .btn-primary:hover { background: var(--primary-dark); }
 .btn-secondary { background: var(--gray-200); color: var(--gray-800); }
+.btn-secondary:hover { background: var(--gray-300); }
+.btn-delete { background: var(--error); color: white; }
+.btn-delete:hover { background: #991b1b; }
 .btn-large { padding: 0.75rem 1.5rem; font-size: 1.1rem; }
 
 .alert {
@@ -174,9 +202,15 @@ body {
 .bracket-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 0.75rem 1rem;
     background: var(--gray-100);
     font-weight: 500;
+}
+.bracket-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 .mat-badge {
     background: var(--primary);
@@ -199,6 +233,19 @@ body {
     font-size: 0.9rem;
 }
 .bracket-wrestlers th { background: var(--gray-50); font-weight: 500; }
+
+.btn-delete-bracket {
+    padding: 0.2rem 0.4rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.5;
+    line-height: 1;
+    border-radius: 4px;
+    transition: opacity 0.15s, background 0.15s;
+}
+.btn-delete-bracket:hover { opacity: 1; background: rgba(220, 38, 38, 0.1); }
 
 .btn-remove-wrestler {
     padding: 0.25rem 0.5rem;
@@ -281,4 +328,107 @@ body {
 
 .login-form button {
     width: 100%;
+}
+
+.scoresheet-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+.scoresheet-preview-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1.25rem;
+}
+.scoresheet-preview-card h3 { margin-bottom: 0.25rem; }
+.scoresheet-preview-card p { color: var(--gray-600); font-size: 0.9rem; margin-bottom: 0.5rem; }
+.scoresheet-preview-card ul { margin-left: 1.25rem; font-size: 0.9rem; }
+
+/* Table scroll wrappers — applied via JS on mobile */
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* =============================================
+   MOBILE / RESPONSIVE STYLES (max-width: 640px)
+   ============================================= */
+@media (max-width: 640px) {
+    /* Navbar hamburger */
+    .nav-hamburger { display: flex; }
+    .nav-links {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        padding: 0.5rem 0 1rem;
+    }
+    .nav-links.open { display: flex; }
+    .nav-links a {
+        margin-left: 0;
+        padding: 0.6rem 0;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        font-size: 1rem;
+    }
+    .nav-links a:first-child { border-top: none; }
+
+    /* Container */
+    .container { padding: 1rem; }
+
+    /* Hero */
+    .hero { padding: 2rem 1rem; }
+    .hero h1 { font-size: 1.6rem; }
+    .hero p { font-size: 1rem; }
+
+    /* Event header — stack vertically */
+    .event-header { flex-direction: column; align-items: stretch; }
+    .event-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .event-actions .btn { flex: 1 1 calc(50% - 0.25rem); text-align: center; }
+
+    /* Form row — single column */
+    .form-row { grid-template-columns: 1fr; }
+
+    /* Tables — horizontal scroll */
+    .format-table,
+    .wrestlers-table,
+    .bracket-wrestlers {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+
+    /* Bracket card wrestlers table — smaller font */
+    .bracket-wrestlers th,
+    .bracket-wrestlers td { font-size: 0.8rem; padding: 0.4rem 0.35rem; }
+
+    /* Brackets grid — single column */
+    .brackets-grid { grid-template-columns: 1fr; }
+
+    /* Upload form padding */
+    .upload-form { padding: 1.5rem 1rem; }
+    .file-label { padding: 2rem 1rem; }
+
+    /* Login card */
+    .login-card { padding: 2rem 1.25rem; }
+    .login-card h1 { font-size: 1.6rem; }
+
+    /* Unmatched section — make select full width */
+    .unmatched-section select { width: 100%; }
+
+    /* Mat tabs — scrollable row instead of wrapping */
+    .mat-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.25rem;
+    }
+    .mat-tab { white-space: nowrap; flex-shrink: 0; }
+
+    /* Scoresheet preview grid — single column */
+    .scoresheet-preview-grid { grid-template-columns: 1fr; }
 }
