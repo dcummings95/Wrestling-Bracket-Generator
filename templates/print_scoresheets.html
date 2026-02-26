@@ -107,7 +107,15 @@
             margin-bottom: 8px;
             text-align: center;
         }
-        
+
+        /* Compact layout for 5-person brackets (10 matches) */
+        .compact .header { margin-bottom: 8px; }
+        .compact .top-section { margin-bottom: 10px; }
+        .compact .match-table { margin-bottom: 4px; }
+        .compact .match-table th,
+        .compact .match-table td { padding: 2px 4px; font-size: 9pt; }
+        .compact .matches-section h3 { margin-bottom: 4px; }
+
         .match-table {
             width: 100%;
             border-collapse: collapse;
@@ -167,7 +175,7 @@
     </div>
 
     {% for bracket in event.brackets %}
-    <div class="scoresheet">
+    <div class="scoresheet{% if event.bracket_size == 5 %} compact{% endif %}">
         <div class="header">
             <div class="bracket-label">
                 Bracket: <span class="bracket-number">{{ bracket.letter_label }}</span>
@@ -210,6 +218,12 @@
                     {% if event.bracket_size >= 4 %}
                     <tr>
                         <td class="place-label">4<sup>th</sup> Place:</td>
+                        <td></td>
+                    </tr>
+                    {% endif %}
+                    {% if event.bracket_size >= 5 %}
+                    <tr>
+                        <td class="place-label">5<sup>th</sup> Place:</td>
                         <td></td>
                     </tr>
                     {% endif %}

@@ -444,16 +444,16 @@ class BracketMatcherV3:
                 if placed:
                     continue
 
-                # Second: find a 4-person bracket where we can pull 1 wrestler,
+                # Second: find a full bracket where we can pull 1 wrestler,
                 # and that pulled wrestler + unmatched wrestler can join another
-                # 3-person bracket (created by pulling from yet another bracket)
+                # under-full bracket (created by pulling from yet another bracket)
                 # Simpler: find a bracket we can add this wrestler to if we remove
                 # one of its wrestlers, and that removed wrestler fits somewhere else
                 best_swap = None
                 best_swap_score = float('inf')
 
                 for b in brackets:
-                    if len(b.wrestlers) < 4:
+                    if len(b.wrestlers) < target:
                         continue
 
                     for pull_w in b.wrestlers:

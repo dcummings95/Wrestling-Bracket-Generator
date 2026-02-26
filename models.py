@@ -84,10 +84,6 @@ class Bracket:
         return len(self.wrestlers)
     
     @property
-    def is_full(self) -> bool:
-        return self.size == 4
-    
-    @property
     def weight_range(self) -> tuple[float, float]:
         weights = [w.weight for w in self.wrestlers]
         return (min(weights), max(weights)) if weights else (0, 0)

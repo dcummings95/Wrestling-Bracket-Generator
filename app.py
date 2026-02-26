@@ -342,8 +342,8 @@ def add_wrestler(event_id):
     if not wrestler:
         return jsonify({'error': 'Wrestler not found'}), 404
     
-    if len(bracket.wrestlers) >= 4:
-        return jsonify({'error': 'Bracket is full (max 4 wrestlers)'}), 400
+    if len(bracket.wrestlers) >= event.bracket_size:
+        return jsonify({'error': f'Bracket is full (max {event.bracket_size} wrestlers)'}), 400
     
     bracket.wrestlers.append(wrestler)
     event.unmatched_wrestlers.remove(wrestler)
