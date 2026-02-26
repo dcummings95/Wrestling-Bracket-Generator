@@ -493,12 +493,14 @@ class BracketMatcherV3:
         return brackets, self.unmatched
 
     def _assign_mats(self, brackets: list[Bracket], num_mats: int):
-        """Distribute brackets across mats evenly."""
-        mat_counts = [0] * num_mats
-        for bracket in brackets:
-            min_mat = mat_counts.index(min(mat_counts))
-            bracket.mat_number = min_mat + 1
-            mat_counts[min_mat] += 1
+        """Distribute brackets across mats evenly, lightest weights on Mat 1."""
+        sorted_brackets = sorted(
+            brackets,
+            key=lambda b: sum(w.weight for w in b.wrestlers) / len(b.wrestlers) if b.wrestlers else 0
+        )
+        n = len(sorted_brackets)
+        for i, bracket in enumerate(sorted_brackets):
+            bracket.mat_number = (i * num_mats) // n + 1
 
     def get_statistics(self) -> dict:
         if not self.brackets:
