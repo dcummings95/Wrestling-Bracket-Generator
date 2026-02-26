@@ -98,6 +98,13 @@ class BracketMatcherV3:
 
         return compat_factor + deviation_factor
 
+    def _effective_weight_limit(self, wrestlers: list[Wrestler], flat_max: float) -> float:
+        """Cap flat_max proportionally: lightest wrestler's weight * 0.4, never exceeding flat_max.
+        Prevents e.g. 60lb kids from being spread 44lbs — their cap becomes min(44, 24) = 24lbs."""
+        if not wrestlers:
+            return flat_max
+        return min(flat_max, min(w.weight for w in wrestlers) * 0.4)
+
     def _find_partners(
         self,
         seed: Wrestler,
@@ -119,7 +126,7 @@ class BracketMatcherV3:
                 test_group = group + [c]
                 result = self._analyze(test_group)
 
-                if result.weight_spread > max_weight:
+                if result.weight_spread > self._effective_weight_limit(test_group, max_weight):
                     continue
                 if result.grade_spread > max_grade:
                     continue
@@ -390,8 +397,8 @@ class BracketMatcherV3:
                         continue
                     if result.max_same_school > 2:
                         continue
-                    # Weight ceiling on absorption - don't create absurd brackets
-                    if result.weight_spread > self.MAX_WEIGHT_RELAXED:
+                    # Weight ceiling on absorption - proportional for lighter wrestlers
+                    if result.weight_spread > self._effective_weight_limit(test_group, self.MAX_WEIGHT_RELAXED):
                         continue
 
                     score = (
@@ -428,7 +435,7 @@ class BracketMatcherV3:
                         continue
                     test_group = b.wrestlers + [unmatched_w]
                     result = self._analyze(test_group)
-                    if result.grade_spread <= self.MAX_GRADE_EMERGENCY and result.max_same_school <= 2 and result.weight_spread <= self.MAX_WEIGHT_RELAXED:
+                    if result.grade_spread <= self.MAX_GRADE_EMERGENCY and result.max_same_school <= 2 and result.weight_spread <= self._effective_weight_limit(test_group, self.MAX_WEIGHT_RELAXED):
                         b.wrestlers.append(unmatched_w)
                         b.relaxations = result.violations
                         placed = True
@@ -458,7 +465,7 @@ class BracketMatcherV3:
                             continue
                         if result.max_same_school > 2:
                             continue
-                        if result.weight_spread > self.MAX_WEIGHT_RELAXED:
+                        if result.weight_spread > self._effective_weight_limit(new_bracket, self.MAX_WEIGHT_RELAXED):
                             continue
 
                         # Can the pulled wrestler go into another non-full bracket?
@@ -467,7 +474,7 @@ class BracketMatcherV3:
                                 continue
                             test = other_b.wrestlers + [pull_w]
                             other_result = self._analyze(test)
-                            if other_result.grade_spread <= self.MAX_GRADE_EMERGENCY and other_result.max_same_school <= 2 and other_result.weight_spread <= self.MAX_WEIGHT_RELAXED:
+                            if other_result.grade_spread <= self.MAX_GRADE_EMERGENCY and other_result.max_same_school <= 2 and other_result.weight_spread <= self._effective_weight_limit(test, self.MAX_WEIGHT_RELAXED):
                                 score = result.weight_spread + other_result.weight_spread
                                 if score < best_swap_score:
                                     best_swap_score = score
