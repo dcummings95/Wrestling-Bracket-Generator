@@ -15,11 +15,10 @@
             </p>
         </div>
         <div class="event-actions">
-            <a href="{{ url_for('print_event', event_id=event.id) }}" class="btn btn-secondary" target="_blank">🖨️ Print Brackets</a>
-            <a href="{{ url_for('print_scoresheets', event_id=event.id) }}" class="btn btn-secondary" target="_blank">📋 Print Scoresheets</a>
+            <a href="{{ url_for('print_event', event_id=event.id) }}" class="btn btn-secondary" target="_blank">Print Brackets</a>
+            <a href="{{ url_for('print_scoresheets', event_id=event.id) }}" class="btn btn-secondary" target="_blank">Print Scoresheets</a>
             <button onclick="createBracket('{{ event.id }}')" class="btn btn-secondary">+ New Bracket</button>
-            <button onclick="deleteEvent('{{ event.id }}')" class="btn btn-delete">🗑️ Delete Event</button>
-            <a href="{{ url_for('upload') }}" class="btn btn-primary">New Event</a>
+            <button onclick="deleteEvent('{{ event.id }}')" class="btn btn-delete">Delete Event</button>
         </div>
     </header>
 
@@ -35,7 +34,10 @@
         <div class="bracket-card" data-mat="{{ bracket.mat_number }}">
             <div class="bracket-header">
                 <span class="bracket-id">Bracket {{ bracket.letter_label }}</span>
-                <span class="mat-badge">Mat {{ bracket.mat_number }}</span>
+                <div class="bracket-header-right">
+                    <span class="mat-badge">Mat {{ bracket.mat_number }}</span>
+                    <button class="btn-delete-bracket" onclick="deleteBracket('{{ event.id }}', {{ bracket.id }})" title="Delete bracket">🗑️</button>
+                </div>
             </div>
             
             {% if bracket.get_relaxation_warnings() %}
@@ -150,6 +152,28 @@ function deleteEvent(eventId) {
     form.action = `/event/${eventId}/delete`;
     document.body.appendChild(form);
     form.submit();
+}
+
+// Delete a bracket (moves its wrestlers to unmatched)
+async function deleteBracket(eventId, bracketId) {
+    if (!confirm('Delete this bracket? Its wrestlers will be moved to the unmatched section.')) return;
+
+    try {
+        const response = await fetch(`/api/event/${eventId}/delete-bracket`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bracket_id: bracketId })
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Error: ' + error.error);
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
 }
 
 // Create new empty bracket

@@ -358,6 +358,32 @@ def add_wrestler(event_id):
         return jsonify({'error': 'Failed to update event'}), 500
 
 
+@app.route('/api/event/<event_id>/delete-bracket', methods=['POST'])
+@login_required
+def delete_bracket(event_id):
+    event_data = get_event(event_id, current_user.id)
+
+    if not event_data:
+        return jsonify({'error': 'Event not found'}), 404
+
+    event = Event.from_dict(event_data['data'])
+
+    data = request.get_json()
+    bracket_id = data.get('bracket_id')
+
+    bracket = next((b for b in event.brackets if b.id == bracket_id), None)
+    if not bracket:
+        return jsonify({'error': 'Bracket not found'}), 404
+
+    event.unmatched_wrestlers.extend(bracket.wrestlers)
+    event.brackets.remove(bracket)
+
+    if update_event(event_id, current_user.id, event.name, event.date, event.num_mats, event.to_dict()):
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Failed to update event'}), 500
+
+
 @app.route('/api/event/<event_id>/create-bracket', methods=['POST'])
 @login_required
 def create_bracket(event_id):
